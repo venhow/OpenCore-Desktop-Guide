@@ -1,57 +1,87 @@
-# Creating the USB
+# Adding The Base OpenCore Files
 
-* Supported version: 0.5.7
+To setup OpenCore’s folder structure, you’ll want to grab the EFI folder found in [OpenCorePkg's releases](https://github.com/acidanthera/OpenCorePkg/releases/). Note that they will be under either the IA32 or X64 folders, the former for 32-bit Firmwares and the latter for 64-bit Firmwares:
 
-Requirements:
+![](../images/installer-guide/opencore-efi-md/ia32-x64.png)
 
-* [OpenCorePkg](https://github.com/acidanthera/OpenCorePkg/releases), highly recommend running the debug version to show more info
-* [AppleSupportPkg](https://github.com/acidanthera/AppleSupportPkg/releases)
-* [ProperTree](https://github.com/corpnewt/ProperTree) to edit .plist files (OpenCore Configurator is another tool but is heavily outdated and the Mackie version is known for corruption. **Please avoid these kinds of tools at all costs!**).
-* Cleaned NVRAM(This is seriously important if you used Clover before, as many variables will remain causing conflicts. Luckily with OC you can press `CleanNvram` in the boot picker when `AllowNvramReset` is enabled in your config)
-* Basic knowledge of how a Hackintosh works and what files yours requires(ie: Type of network controller).
-* You must remove Clover from your system entirely if you wish to use it as your main boot-loader. Keep a backup of your Clover based EFI. See here on what needs to be cleaned: [Clover Conversion](https://github.com/dortania/OpenCore-Desktop-Guide/tree/master/clover-conversion)
+Regarding DEBUG versus RELEASE version:
 
-# Making the installer
+* **DEBUG**: Can greatly help with debugging boot issues, however can add some noticeable delay to boot times(ie. 3-5 seconds to get to the picker). Once installed you can easily transition to RELEASE
+* **RELEASE**: Much snappier boot times, however virtually no useful DEBUG info is provided in OpenCore making troubleshooting much more difficult.
 
-Depending on which OS you're on, see your specific section on making the USB, then once done return here on setting up OpenCore:
+And once downloaded, place the EFI folder(from OpenCorePkg) on the root of your EFI partition:
 
-* [macOS users](/installer-guide/mac-install.md)
-* [Windows users](/installer-guide/winblows-install.md)
-* [Linux users](/installer-guide/linux-install.md)
+![](../images/installer-guide/opencore-efi-md/efi-moved.png)
 
+**Note**:
 
-# Setting up the EFI
+* **Windows users:** you'll want to place the EFI folder on the root of the USB drive you made earlier
+* **Linux users:** This is the `OPENCORE` partition we created earlier
+  * Note that Method 1 only creates 1 partition, while Method 2 creates 2 partitions
 
-To setup OpenCore’s folder structure, you’ll want to grab the EFI folder found in OpenCorePkg's releases page(this will already be done on the `BOOT` USB drive for windows users):
+Now lets open up our EFI folder and see what's inside:
 
-![base EFI folder](/images/installer-guide/opencore-efi-md/base-efi.png)
+![base EFI folder](../images/installer-guide/opencore-efi-md/base-efi.png)
 
 Now something you'll notice is that it comes with a bunch of files in `Drivers` and `Tools` folder, we don't want most of these:
 
-* **Remove from Drivers:**
-   * OpenUsbKbDxe.efi
-      * Used for OpenCore picker on **legacy systems running DuetPkg**, [not recommended and even harmful on Ivy Bridge and newer](https://applelife.ru/threads/opencore-obsuzhdenie-i-ustanovka.2944066/page-176#post-856653)
-   * NvmExpressDxe.efi
-      * Used for Haswell and older when no NVMe driver is built into the firmware
-   * XhciDxe.efi
-      * Used for Sandy Bridge and older when no XHCI driver is built into the firmware
-   * HiiDatabase.efi
-      * Used for fixing GUI support like OpenShell.efi on Sandy Bridge and older
-   * OpenCanopy.efi
-      * This is OpenCore's optional GUI, we'll be going over how to set this up in installer-guide so remove this for now
+* **Keep the following from Drivers**(if applicable):
 
-* **Remove everything from Tools:**
-   * Way to many to list them all, but I recommend keeping OpenShell.efi for troubleshooting pruposes
-      
+| Driver | Status | Description |
+| :--- | :--- | :--- |
+| OpenUsbKbDxe.efi | <span style="color:#30BCD5"> Optional </span> | Required for non-UEFI systems(pre-2012) |
+| OpenPartitionDxe.efi | ^^ | Required to boot macOS 10.7-10.9 recovery |
+| OpenRuntime.efi | <span style="color:red"> Required </span> | Required for proper operation |
+
+::: details More info on provided drivers
+
+* AudioDxe.efi
+  * Unrelated to Audio support in macOS
+* CrScreenshotDxe.efi
+  * Used for taking screenshots in UEFI, not needed by us
+* HiiDatabase.efi
+  * Used for fixing GUI support like OpenShell.efi on Sandy Bridge and older
+  * Not required for booting
+* NvmExpressDxe.efi
+  * Used for Haswell and older when no NVMe driver is built into the firmware
+  * Don't use unless you know what you're doing
+* OpenCanopy.efi
+  * This is OpenCore's optional GUI, we'll be going over how to set this up in [Post Install](https://dortania.github.io/OpenCore-Post-Install/cosmetic/gui.html) so remove this for now
+* OpenHfsPlus.efi
+  * Open sourced HFS Plus driver, quite slow so we recommend not using unless you know what you're doing.
+* OpenPartitionDxe.efi
+  * Required to boot recovery on OS X 10.7 through 10.9
+    * Note: OpenDuet users(ie. without UEFI) will have this driver built-in, not requiring it
+* OpenUsbKbDxe.efi
+  * Used for OpenCore picker on **legacy systems running DuetPkg**, [not recommended and even harmful on Ivy Bridge and newer](https://applelife.ru/threads/opencore-obsuzhdenie-i-ustanovka.2944066/page-176#post-856653)
+* Ps2KeyboardDxe.efi + Ps2MouseDxe.efi
+  * Pretty obvious when you need this, USB keyboard and mouse users don't need it
+  * Reminder: PS2 ≠ USB
+* UsbMouseDxe.efi
+  * similar idea to OpenUsbKbDxe, should only be needed on legacy systems using DuetPkg
+* XhciDxe.efi
+  * Used for Sandy Bridge and older when no XHCI driver is built into the firmware
+  * Only needed if you're using a USB 3.0 expansion card in an older machine
+
+:::
+
+* **Keep the following from Tools:**
+
+| Tool | Status | Description |
+| :--- | :--- | :--- |
+| OpenShell.efi | <span style="color:#30BCD5"> Optional </span> | Recommended for easier debugging |
+
 A cleaned up EFI:
 
-![Clean EFI](/images/installer-guide/opencore-efi-md/clean-efi.png)
+![Clean EFI](../images/installer-guide/opencore-efi-md/clean-efi.png)
 
-Now you can place **your** necessary firmware drivers(.efi) from AppleSupportPkg into the _Drivers_ folder and Kexts/ACPI into their respective folders. Please note that UEFI drivers from Clover are not supported with OpenCore!(EmuVariableUEFI, AptioMemoryFix, OsxAptioFixDrv, etc). Please see the [Clover firmware driver conversion](https://github.com/khronokernel/Opencore-Vanilla-Desktop-Guide/blob/master/clover-conversion/clover-efi.md) for more info on supported drivers and those merged into OpenCore.
+Now you can place **your** necessary firmware drivers(.efi) into the _Drivers_ folder and Kexts/ACPI into their respective folders. See [Gathering Files](../ktext.md) for more info on which files you should be using.
 
-Here's what a populated EFI can look like:
+* Please note that UEFI drivers from Clover are not supported with OpenCore!(EmuVariableUEFI, AptioMemoryFix, OsxAptioFixDrv, etc). Please see the [Clover firmware driver conversion](https://github.com/dortania/OpenCore-Install-Guide/blob/master/clover-conversion/clover-efi.md) for more info on supported drivers and those merged into OpenCore.
 
-![Populated EFI folder](/images/installer-guide/opencore-efi-md/populated-efi.png)
+Here's what a populated EFI ***can*** look like (yours will be different):
+
+![Populated EFI folder](../images/installer-guide/opencore-efi-md/populated-efi.png)
 
 **Reminder**:
 
@@ -59,5 +89,4 @@ Here's what a populated EFI can look like:
 * Kexts(`.kext`) go in Kexts folder
 * Firmware drivers(`.efi`) go in the Drivers folder
 
-## Now head to [Gathering Files](/ktext.md) to get the needed kexts and firmware drivers
-
+# Now with all this done, head to [Gathering Files](../ktext.md) to get the needed kexts and firmware drivers
